@@ -1,0 +1,6 @@
+mcp
+pydantic
+python-dotenv
+requests
+validators
+

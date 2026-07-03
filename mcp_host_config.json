@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+        "threat-detection-mcp": {
+            "command": "/home/mcp/mcp-threat-detection/venv/bin/python",
+            "args": [
+                "-m",
+                "src.main"
+            ],
+            "cwd": "/home/mcp/mcp-threat-detection",
+            "allowed_paths": [
+                "/home/mcp/mcp-threat-detection/documentos",
+                "/home/mcp/mcp-threat-detection/safe_files",
+                "/home/mcp/mcp-threat-detection/logs"
+            ]
+        }
+    }
+}

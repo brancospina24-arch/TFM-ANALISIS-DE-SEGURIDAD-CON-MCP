@@ -35,63 +35,74 @@ PATRONES_COMMAND_INJECTION = [
 def clasificar_intencion(solicitud: str) -> dict:
     texto = solicitud.strip()
  
-    # 1. Path Traversal o ruta local autorizada
-    if (
-        "../" in texto
-        or "..\\" in texto
-        or "/etc/passwd" in texto
-        or "Windows/System32" in texto
-        or any(texto.startswith(ruta) for ruta in RUTAS_PERMITIDAS)
-    ):
+ # 1. Rutas permitidas → BAJO
+    for ruta in RUTAS_PERMITIDAS:
+        if texto.startswith(ruta) or ruta in texto:
+            return {
+                "herramienta": "validar_path_seguro",
+                "argumentos": {
+                    "ruta": texto,
+                    "riesgo": "BAJO",
+                    "descripcion": f"La ruta '{texto}' está dentro de las permitidas."
+                }
+            }
+
+    # 2. Path Traversal → ALTO
+    if "../" in texto or "..\\" in texto or "/etc/passwd" in texto or "Windows/System32" in texto:
         return {
             "herramienta": "validar_path_traversal",
             "argumentos": {
-                "ruta": texto
+                "ruta": texto,
+                "riesgo": "ALTO",
+                "descripcion": "Se detectó intento de acceso a rutas no autorizadas."
             }
         }
- 
-    # 2. Command Injection
+
+    # 3. Command Injection → ALTO
     if any(re.search(patron, texto, re.IGNORECASE) for patron in PATRONES_COMMAND_INJECTION):
         return {
             "herramienta": "validar_command_injection",
             "argumentos": {
-                "entrada": texto
+                "entrada": texto,
+                "riesgo": "ALTO",
+                "descripcion": "Se detectó posible intento de command injection."
             }
         }
- 
-    # 3. SSRF
-    if (
-        "169.254.169.254" in texto
-        or "localhost" in texto.lower()
-        or "127.0.0.1" in texto
-        or "ssrf" in texto.lower()
-    ):
+
+    # 4. SSRF → ALTO
+    if "169.254.169.254" in texto or "localhost" in texto.lower() or "127.0.0.1" in texto or "ssrf" in texto.lower():
         url_detectada = extraer_url(texto)
         return {
             "herramienta": "validar_ssrf",
             "argumentos": {
-                "url": url_detectada if url_detectada else texto
+                "url": url_detectada if url_detectada else texto,
+                "riesgo": "ALTO",
+                "descripcion": "Se detectó posible intento de SSRF."
             }
         }
- 
-    # 4. URL normal
+
+    # 5. URL normal → ALTO si es HTTP, BAJO si es HTTPS
     if "http://" in texto or "https://" in texto:
         url_detectada = extraer_url(texto)
+        riesgo = "ALTO" if "http://" in texto else "BAJO"
         return {
             "herramienta": "analizar_url",
             "argumentos": {
-                "url": url_detectada if url_detectada else texto
+                "url": url_detectada if url_detectada else texto,
+                "riesgo": riesgo,
+                "descripcion": f"La URL utiliza {'HTTP inseguro' if riesgo=='ALTO' else 'HTTPS seguro'}."
             }
         }
- 
-    # 5. Valor por defecto
+
+    # 6. Default → sospechosa
     return {
         "herramienta": "analizar_url",
         "argumentos": {
-            "url": texto
+            "url": texto,
+            "riesgo": "ALTO",
+            "descripcion": "Entrada no reconocida, tratada como sospechosa."
         }
-    }
- 
+    } 
  
 def extraer_url(texto: str) -> str:
     coincidencia = re.search(r"https?://[^\s]+", texto)

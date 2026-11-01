@@ -185,6 +185,10 @@ async def main():
         print("\n[3] Resultado MCP:")
         print(resultado_mcp)
 
+# Guardar resultado MCP para Wazuh
+        with open("/home/mcp/mcp-threat-detection/mcp.log", "a") as log:
+            log.write(f"MCP_TEST | {resultado_mcp}\n")
+
         explicacion = explicar_resultado(solicitud, resultado_mcp)
         print("\n[4] Explicación IA:")
         print(explicacion)
